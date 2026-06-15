@@ -1,7 +1,38 @@
 use std::{
-    io::Read,
-    net::{TcpListener, TcpStream},
+     io::Read, net::{TcpListener, TcpStream}
 };
+
+fn read_lines (request : &str)  {
+    let mut lines = request.lines();
+    let request_line = lines.next();
+    match request_line {
+        Some(request_line) => {
+            let mut parts = request_line.split(' ');
+            let method = parts.next();
+            let path = parts.next();
+            let  version = parts.next();
+            match (method , path , version) {
+                (Some(method), Some(path) , Some(version)) => {
+                    println!("Method : {}", method);
+                    println!("Path : {}", path);
+                    println!("Version : {}", version);
+                }
+
+                
+                _ => println!("we found a error"),
+            }
+        },
+        None => println!("the issue is beyond our hold"),
+    }
+
+for line in lines {
+    println!("{}",line)
+}
+
+
+
+    
+}
 fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [0; 1024];
     let n = stream.read(&mut buffer);
@@ -11,7 +42,9 @@ fn handle_connection(mut stream: TcpStream) {
 
             let request = String::from_utf8(buffer[0..n].to_vec());
             match request {
-                Ok(request) => println!("{}", request),
+                Ok(request) => {
+                    read_lines(&request)
+                },
                 Err(e) => println!("the error is due to : {e}"),
             }
         }
