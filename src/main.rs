@@ -1,10 +1,25 @@
 use std::{
-     io::Read, net::{TcpListener, TcpStream}
+    collections::HashMap, io::Read, net::{TcpListener, TcpStream}
 };
 
-fn read_lines (request : &str)  {
+
+#[derive(Debug)]
+struct Request {
+    method: String,
+    path: String,
+    version: String,
+    header: HashMap<String,String>,
+
+}
+
+fn read_lines (request : &str) -> Option<Request> {
     let mut lines = request.lines();
+    let mut random = HashMap::new();
     let request_line = lines.next();
+    let mut meth = String::new();
+    let mut pat= String::new();
+    let mut  ver= String::new();
+
     match request_line {
         Some(request_line) => {
             let mut parts = request_line.split(' ');
@@ -13,26 +28,54 @@ fn read_lines (request : &str)  {
             let  version = parts.next();
             match (method , path , version) {
                 (Some(method), Some(path) , Some(version)) => {
-                    println!("Method : {}", method);
-                    println!("Path : {}", path);
-                    println!("Version : {}", version);
+                    meth = method.to_string();
+                    pat = path.to_string();
+                    ver = version.to_string();                    
+                    
+                    
+                    // println!("Method : {}", method);
+                    // println!("Path : {}", path);
+                    // println!("Version : {}", version);
                 }
 
                 
-                _ => println!("we found a error"),
+                _ => return None,
             }
         },
-        None => println!("the issue is beyond our hold"),
+        None => return None,
     }
 
 for line in lines {
-    println!("{}",line)
+    let mut xyz = line.split(':');
+    let host = xyz.next();
+    let value = xyz.next();
+    match (host , value) {
+        (Some(host) ,Some(value)) => {
+            random.insert(host.to_string(), value.trim().to_string());
+            
+        }
+        _ =>  return None
+    }
+
 }
 
+// println!("{:?}",random); 
 
+let request1 = Request {
+    method: meth,
+    path: pat,
+    version: ver,
+    header: random  ,    
+};
 
+// println!("{:#?}",request1);
+
+Some(request1) 
     
 }
+
+
+
 fn handle_connection(mut stream: TcpStream) {
     let mut buffer = [0; 1024];
     let n = stream.read(&mut buffer);
@@ -43,7 +86,10 @@ fn handle_connection(mut stream: TcpStream) {
             let request = String::from_utf8(buffer[0..n].to_vec());
             match request {
                 Ok(request) => {
-                    read_lines(&request)
+                    match  read_lines(&request) {
+                        Some(request) => println!("{:#?}",request),
+                        None => println!("error"),
+                    }
                 },
                 Err(e) => println!("the error is due to : {e}"),
             }
