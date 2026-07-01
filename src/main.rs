@@ -1,78 +1,96 @@
 use std::{
-    collections::HashMap, io::Read, net::{TcpListener, TcpStream}
+    collections::HashMap,  io::Read, net::{TcpListener, TcpStream},
 };
-
 
 #[derive(Debug)]
 struct Request {
     method: String,
     path: String,
     version: String,
-    header: HashMap<String,String>,
-
+    header: HashMap<String, String>,
 }
 
-fn read_lines (request : &str) -> Option<Request> {
+fn handle_route(request: &Request) -> String {
+    match request.path.as_str() {
+        "/" => "home page".to_string(),
+        "/about" => "about page".to_string(),
+
+        _ => "404 error".to_string(),
+    }
+}
+
+fn read_lines(request: &str) -> Option<Request> {
+    // println!("{:?}",request);
     let mut lines = request.lines();
     let mut random = HashMap::new();
     let request_line = lines.next();
     let mut meth = String::new();
-    let mut pat= String::new();
-    let mut  ver= String::new();
+    let mut pat = String::new();
+    let mut ver = String::new();
 
     match request_line {
         Some(request_line) => {
             let mut parts = request_line.split(' ');
             let method = parts.next();
             let path = parts.next();
-            let  version = parts.next();
-            match (method , path , version) {
-                (Some(method), Some(path) , Some(version)) => {
+            let version = parts.next();
+            match (method, path, version) {
+                (Some(method), Some(path), Some(version)) => {
                     meth = method.to_string();
                     pat = path.to_string();
-                    ver = version.to_string();                    
-                    
-                    
+                    ver = version.to_string();
+
                     // println!("Method : {}", method);
                     // println!("Path : {}", path);
                     // println!("Version : {}", version);
                 }
 
-                
                 _ => return None,
             }
-        },
+        }
         None => return None,
     }
 
-for line in lines {
-    let mut xyz = line.split(':');
-    let host = xyz.next();
-    let value = xyz.next();
-    match (host , value) {
-        (Some(host) ,Some(value)) => {
-            random.insert(host.to_string(), value.trim().to_string());
-            
+    for line in lines {
+        if line.is_empty() {
+            break;
         }
-        _ =>  return None
+        let mut xyz = line.split(':');
+        let host = xyz.next();
+        let value = xyz.next();
+        match (host, value) {
+            (Some(host), Some(value)) => {
+                random.insert(host.to_string(), value.trim().to_string());
+            }
+            _ => return None,
+        }
     }
 
+    // println!("{:?}",random);
+
+    let request1 = Request {
+        method: meth,
+        path: pat,
+        version: ver,
+        header: random,
+    };
+
+    // println!("{:#?}",request1);
+
+    Some(request1)
 }
 
-// println!("{:?}",random); 
-
-let request1 = Request {
-    method: meth,
-    path: pat,
-    version: ver,
-    header: random  ,    
-};
-
-// println!("{:#?}",request1);
-
-Some(request1) 
+fn build_response (body: &str) -> String {
+    let status = "HTTP/1.1 200 OK".to_string();
+    let header = format!("content-length: {}",body.len());
     
+    let result = format!("{}\r\n{}\r\n\r\n{}", status , header , body );
+    result
 }
+
+
+
+
 
 
 
@@ -85,11 +103,14 @@ fn handle_connection(mut stream: TcpStream) {
 
             let request = String::from_utf8(buffer[0..n].to_vec());
             match request {
-                Ok(request) => {
-                    match  read_lines(&request) {
-                        Some(request) => println!("{:#?}",request),
-                        None => println!("error"),
+                Ok(request) => match read_lines(&request) {
+                    Some(request) => {
+                        let body = handle_route(&request);
+                        let response = build_response(&body);
+                        println!("{}",response);
                     }
+
+                    None => println!("error"),
                 },
                 Err(e) => println!("the error is due to : {e}"),
             }
